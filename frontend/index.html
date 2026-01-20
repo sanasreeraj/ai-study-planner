@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Study Planner</title>
+  <style>
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.3); }
+      50% { box-shadow: 0 0 40px rgba(255, 107, 53, 0.6); }
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 30px 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    #starCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      background: #f5f5f5;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 20% 50%, rgba(255, 140, 0, 0.08) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 80%, rgba(255, 107, 53, 0.08) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    header h1 {
+      font-size: 3.2em;
+      margin-bottom: 12px;
+      font-weight: 900;
+      background: linear-gradient(120deg, #ff6b35 0%, #ff8c00 50%, #ff6b35 100%);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: slideIn 0.8s ease-out, gradientShift 6s ease infinite;
+      letter-spacing: -1.2px;
+    }
+
+    header p {
+      font-size: 1.15em;
+      color: #666666;
+      font-weight: 400;
+      animation: fadeInUp 0.8s ease-out 0.3s both;
+      letter-spacing: 0.3px;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      height: calc(100vh - 240px);
+    }
+
+    /* Output Panel - Single Box */
+    .output-grid {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 140, 0, 0.15);
+      border-radius: 24px;
+      padding: 45px;
+      box-shadow: 0 8px 32px rgba(255, 107, 53, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      animation: fadeInUp 0.8s ease-out 0.4s both;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .output-grid:hover {
+      box-shadow: 0 12px 48px rgba(255, 107, 53, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .output-grid h2 {
+      font-size: 1.85em;
+      color: #ff6b35;
+      margin-bottom: 28px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Left Panel - Input Form */
+    .input-panel {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 140, 0, 0.15);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 8px 32px rgba(255, 107, 53, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      overflow-y: auto;
+      height: 100%;
+      animation: fadeInUp 0.8s ease-out 0.2s both;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .input-panel:hover {
+      box-shadow: 0 12px 48px rgba(255, 107, 53, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .input-panel h2 {
+      font-size: 1.55em;
+      color: #ff6b35;
+      margin-bottom: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 8px;
+      color: #444444;
+      font-size: 0.88em;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 0.95em;
+      font-family: inherit;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      color: #1a1a1a;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      resize: vertical;
+    }
+
+    input[type="text"]::placeholder,
+    input[type="date"]::placeholder,
+    input[type="number"]::placeholder,
+    textarea::placeholder {
+      color: #aaaaaa;
+    }
+
+    input[type="text"]:focus,
+    input[type="date"]:focus,
+    input[type="number"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #ff6b35;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+      transform: translateY(-1px);
+    }
+
+    textarea {
+      min-height: 80px;
+      font-size: 0.95em;
+      resize: none;
+      line-height: 1.5;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    button {
+      flex: 1;
+      padding: 13px 22px;
+      background: linear-gradient(135deg, #ff6b35 0%, #ff8c00 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.95em;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(255, 107, 53, 0.25);
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      transition: left 0.5s ease;
+    }
+
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+    }
+
+    button:hover::before {
+      left: 100%;
+    }
+
+    button:active {
+      transform: translateY(-2px);
+    }
+
+    .clear-btn {
+      background: rgba(255, 107, 53, 0.08);
+      color: #ff6b35;
+      border: 1.5px solid #ff6b35;
+      flex: 0.5;
+      box-shadow: none;
+    }
+
+    .clear-btn:hover {
+      background: rgba(255, 107, 53, 0.12);
+      box-shadow: none;
+      border-color: #ff6b35;
+      color: #ff6b35;
+    }
+
+    /* Right Panel - Output */
+    .output-panel {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(255, 140, 0, 0.15);
+      border-radius: 24px;
+      padding: 45px;
+      box-shadow: 0 8px 32px rgba(255, 107, 53, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .output-panel h2 {
+      font-size: 1.85em;
+      color: #ff6b35;
+      margin-bottom: 28px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .output-content {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+
+    .output-content::-webkit-scrollbar {
+      width: 7px;
+    }
+
+    .output-content::-webkit-scrollbar-track {
+      background: #f5f5f5;
+      border-radius: 10px;
+    }
+
+    .output-content::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #ff6b35, #ff8c00);
+      border-radius: 10px;
+    }
+
+    .output-content::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #ff8c00, #ff6b35);
+    }
+
+    .loading {
+      text-align: center;
+      color: #ff6b35;
+      font-size: 1.1em;
+      padding: 40px 20px;
+      animation: pulse 1.8s ease-in-out infinite;
+      font-weight: 600;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 1; }
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #888888;
+      padding: 60px 20px;
+      font-size: 1.05em;
+      font-weight: 400;
+    }
+
+    .empty-state svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 20px;
+      opacity: 0.3;
+    }
+
+    .error {
+      background: rgba(255, 71, 87, 0.12);
+      border: 1.5px solid rgba(255, 71, 87, 0.3);
+      color: #d32f2f;
+      padding: 16px 18px;
+      border-radius: 12px;
+      margin-top: 18px;
+      font-weight: 500;
+      font-size: 0.95em;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+        gap: 28px;
+      }
+
+      header h1 {
+        font-size: 2.5em;
+      }
+
+      .input-panel,
+      .output-panel {
+        padding: 35px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 15px;
+      }
+
+      header {
+        margin-bottom: 35px;
+      }
+
+      header h1 {
+        font-size: 2em;
+      }
+
+      header p {
+        font-size: 1em;
+      }
+
+      .input-panel,
+      .output-grid,
+      .output-panel {
+        padding: 25px;
+        border-radius: 16px;
+      }
+
+      .input-panel h2,
+      .output-grid h2,
+      .output-panel h2 {
+        font-size: 1.4em;
+      }
+
+      .button-group {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .clear-btn {
+        flex: 1;
+      }
+
+      .main-grid {
+        height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="starCanvas"></canvas>
+  <div class="container">
+    <header>
+      <h1>AI Study Planner</h1>
+      <p>Create personalized study schedules powered by AI</p>
+    </header>
+
+    <div class="main-grid">
+      <!-- Left Panel: Input Form -->
+      <div class="input-panel">
+        <div>
+          <h2>Study Details</h2>
+
+          <div class="form-group">
+            <label for="subjects">📖 Subjects</label>
+            <input
+              id="subjects"
+              type="text"
+              placeholder="e.g., Math, Physics, Chemistry"
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="exam_date">📅 Exam Date</label>
+              <input id="exam_date" type="date" />
+            </div>
+            <div class="form-group">
+              <label for="hours_per_day">⏱️ Hours per Day</label>
+              <input
+                id="hours_per_day"
+                type="number"
+                placeholder="5"
+                min="1"
+                max="24"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="weak_topics">❌ Weak Topics</label>
+            <textarea
+              id="weak_topics"
+              placeholder="e.g., Integration, Thermodynamics..."
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button onclick="generatePlan()">Generate Plan</button>
+          <button class="clear-btn" onclick="clearForm()">Clear</button>
+        </div>
+      </div>
+
+      <!-- Right Panel: Single Output Box -->
+      <div class="output-grid">
+        <h2>📋 Your Study Plan</h2>
+        <div class="output-content" id="outputContent">
+          <div class="empty-state">
+            ✨ Click "Generate Plan" to create your personalized study schedule
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function extractTableFromText(text) {
+      // Find table-like content (lines with | separators)
+      const lines = text.split('\n');
+      const tableLines = [];
+      let inTable = false;
+      let tableStart = -1;
+      
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes('|')) {
+          if (!inTable) {
+            inTable = true;
+            tableStart = i;
+          }
+          tableLines.push(i);
+        } else if (inTable && lines[i].trim() === '') {
+          inTable = false;
+        }
+      }
+      
+      if (tableLines.length > 0) {
+        const tableText = tableLines.map(i => lines[i]).join('\n');
+        const remainingText = lines.filter((_, i) => !tableLines.includes(i)).join('\n');
+        return { table: tableText, remaining: remainingText };
+      }
+      
+      return { table: null, remaining: text };
+    }
+
+    function parseTable(tableText) {
+      const lines = tableText.split('\n').filter(line => line.trim());
+      if (lines.length < 2) return '';
+      
+      let html = '<table><thead><tr>';
+      
+      // Parse header
+      const headerCells = lines[0].split('|').filter(cell => cell.trim());
+      headerCells.forEach(cell => {
+        html += `<th>${cell.trim()}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+      
+      // Parse body (skip separator line)
+      for (let i = 2; i < lines.length; i++) {
+        const cells = lines[i].split('|').filter(cell => cell.trim());
+        if (cells.length > 0) {
+          const isRevision = lines[i].toLowerCase().includes('revision');
+          const rowClass = isRevision ? 'revision-slot' : 'study-slot';
+          html += `<tr class="${rowClass}">`;
+          cells.forEach(cell => {
+            html += `<td>${cell.trim()}</td>`;
+          });
+          html += '</tr>';
+        }
+      }
+      
+      html += '</tbody></table>';
+      return html;
+    }
+
+    function parseMarkdown(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/__(.*?)__/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/_(.*?)_/g, '<em>$1</em>')
+        .replace(/^### (.*?)$/gm, '<h4 style="margin-top: 15px; margin-bottom: 10px; color: #ff6b35; font-weight: 700;">$1</h4>')
+        .replace(/^## (.*?)$/gm, '<h3 style="margin-top: 15px; margin-bottom: 10px; color: #ff6b35; font-weight: 700;">$1</h3>')
+        .replace(/^# (.*?)$/gm, '<h2 style="margin-top: 15px; margin-bottom: 10px; color: #ff6b35; font-weight: 700;">$1</h2>')
+        .replace(/\n/g, '<br>');
+    }
+
+    function clearForm() {
+      document.getElementById("subjects").value = "";
+      document.getElementById("exam_date").value = "";
+      document.getElementById("hours_per_day").value = "";
+      document.getElementById("weak_topics").value = "";
+    }
+
+    async function generatePlan() {
+      const subjects = document.getElementById("subjects").value;
+      const exam_date = document.getElementById("exam_date").value;
+      const hours_per_day = document.getElementById("hours_per_day").value;
+      const weak_topics = document.getElementById("weak_topics").value;
+
+      if (!subjects || !exam_date || !hours_per_day || !weak_topics) {
+        showError("❌ Please fill in all fields");
+        return;
+      }
+
+      const outputContent = document.getElementById("outputContent");
+      outputContent.innerHTML = '<div class="loading">⏳ Generating your study plan...</div>';
+
+      const controller = new AbortController();
+      const timeoutMs = 30000; // 30s timeout
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch("http://localhost:8000/generate-plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subjects,
+            exam_date,
+            hours_per_day: Number(hours_per_day),
+            weak_topics,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          showError(`❌ Server error: ${response.status} ${response.statusText} ${text}`);
+          return;
+        }
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          const text = await response.text().catch(() => "");
+          showError(`❌ Invalid JSON response: ${text}`);
+          return;
+        }
+
+        if (data.error) {
+          showError(data.error);
+          return;
+        }
+
+        const planText = data.plan || JSON.stringify(data) || "No response received";
+        const formattedText = parseMarkdown(planText);
+        outputContent.innerHTML = '<div class="output-text">' + formattedText + '</div>';
+
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          showError('❌ Request timed out. The server may be busy. Try again.');
+        } else {
+          showError('❌ Failed to connect to backend. Make sure it is running on localhost:8000');
+        }
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    function showError(message) {
+      const outputContent = document.getElementById("outputContent");
+      outputContent.innerHTML = '<div class="error">' + message + '</div>';
+    }
+
+    // Set default exam date to next month
+    document.addEventListener("DOMContentLoaded", function() {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 30);
+      document.getElementById("exam_date").valueAsDate = tomorrow;
+    });
+
+    // Animated Starfield Background
+    const canvas = document.getElementById('starCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    const stars = [];
+    const numStars = 150;
+    
+    class Star {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.z = Math.random() * 100;
+        this.radius = Math.random() * 1.5;
+        this.opacity = Math.random() * 0.5 + 0.3;
+        this.twinkleSpeed = Math.random() * 0.03 + 0.01;
+        this.twinkleAmount = Math.sin(Date.now() * this.twinkleSpeed) * 0.5 + 0.5;
+      }
+      
+      update() {
+        this.z -= 0.5;
+        if (this.z <= 0) {
+          this.z = 100;
+        }
+        this.twinkleAmount = Math.sin(Date.now() * this.twinkleSpeed) * 0.5 + 0.5;
+      }
+      
+      draw() {
+        const scale = this.z / 100;
+        const x = (this.x - canvas.width / 2) * scale + canvas.width / 2;
+        const y = (this.y - canvas.height / 2) * scale + canvas.height / 2;
+        const size = this.radius * (1 - this.z / 100) * 2;
+        
+        // Twinkling effect
+        ctx.globalAlpha = this.opacity * this.twinkleAmount;
+        
+        ctx.fillStyle = '#999999';
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Glow effect for stars closer to camera with orange tint
+        if (scale > 0.7) {
+          ctx.globalAlpha = (this.opacity * this.twinkleAmount) * 0.5;
+          ctx.fillStyle = '#ff8c00';
+          ctx.beginPath();
+          ctx.arc(x, y, size * 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        ctx.globalAlpha = 1;
+      }
+    }
+    
+    // Initialize stars
+    for (let i = 0; i < numStars; i++) {
+      stars.push(new Star());
+    }
+    
+    function animateStars() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw light background
+      ctx.fillStyle = '#f5f5f5';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Update and draw stars
+      stars.forEach(star => {
+        star.update();
+        star.draw();
+      });
+      
+      requestAnimationFrame(animateStars);
+    }
+    
+    animateStars();
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
